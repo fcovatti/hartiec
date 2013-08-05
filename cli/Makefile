@@ -2,6 +2,7 @@
 
 TARGET := cli
 TARGET_DIR := ../bin
+SRC := ../src
 
 ########################################################################
 #Include dirs
@@ -37,7 +38,7 @@ LDFLAGS  = ${LIBS}
 CSOURCES = $(wildcard *.c)
 OBJECTS  = $(CSOURCES:.c=.o)
 DEPS     = $(CSOURCES:.c=.d)
-OBJS	 = #$(COMMON)/*.o $(MODEL)/*.o #$(SIMUL)/*.o $(MONITOR)/*.o $(ROBOTHREAD)/*.o 
+OBJS	 = $(SRC)/*.o #$(COMMON)/*.o $(MODEL)/*.o #$(SIMUL)/*.o $(MONITOR)/*.o $(ROBOTHREAD)/*.o 
 LIBFILES = #$(LIBINCLUDE)/libRobot.a
 
 ########################################################################

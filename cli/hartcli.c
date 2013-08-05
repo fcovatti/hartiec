@@ -2,6 +2,7 @@
 //
 #include "stdio.h"
 #include "stdlib.h"
+#include <unistd.h>
 #include "time.h"
 #include "hartip.h"
 #include "hartcli.h"
@@ -57,7 +58,8 @@ int main(int argc, char* argv[])
 	int unsigned tmps=140;
 	while (ent<5){
     _tprintf(_T("> "));
-	_sleep(tmps);		
+	//_sleep(tmps);
+	usleep(tmps*1000);		
     ent++;
 	}
 	_tprintf(_T("conectado!!\n"));
@@ -79,7 +81,7 @@ menu:
     quit = FALSE;
 	//mainMenu(); teste
     do {
-        c = _getwch();
+        c = getchar();
         switch (c) {
             case _T('e'):
                 handle_enum(sess);
@@ -227,12 +229,14 @@ handle_set_long_tag(struct hip_sess *sess)
     size_t len;
 
     _tprintf(_T("Please enter the long tag: "));
-    s = _fgetts(buf, HIP_DIM(buf), stdin);
-    if (!s) {
+    // s = _fgetts(buf, HIP_DIM(buf), stdin);
+    s = fgets(buf, HIP_DIM(buf), stdin);
+	if (!s) {
         _tprintf(_T("fgets failed\n"));
         goto done;
     }
-    len = _tcslen(s);
+    //len = _tcslen(s);
+	len = strlen(s);
     if (s[len - 1] != _T('\n')) {
         _tprintf(_T("invalid long tag\n"));
         goto done;
@@ -294,7 +298,9 @@ done:
 static void
 print_addr(hip_addr_t addr)
 {
-    _tprintf(_T("%010I64x"), addr);
+    //_tprintf(_T("%010I64x"), addr);
+	//TODO
+    _tprintf(_T("%llx"), addr);
 }
 
 static void
@@ -410,7 +416,7 @@ handle_get_neighbor_dlist(struct hip_sess *sess)
 		_tprintf(_T("\nNeighbor_discovered_list\n"));
 		_tprintf(_T("Numero Total de Vizinhos: %u\n"), tabela->total_vizinhos);
 		nnodes = tabela->vizinhos_lidos;
-		_tprintf(_T("Numero de Vizinhos: %u\n"), nnodes);
+		_tprintf(_T("Numero de Vizinhos: %zu\n"), nnodes);
 		for (i = 0; i < nnodes; ++i) 
 			_tprintf(_T("Nickname %d: (RSL %d dB)\n"),
 									   tabela->lista[i].nickname,
@@ -885,14 +891,14 @@ loop_question9(struct hip_sess *sess)
 						default: pSessionType = "ERR"; break;
 					}
 					
-					printf("\t\t TipoSessao %s, Nickname %X, Addr %010I64X, pdncv %u, tdncv %u\n",
+					printf("\t\t TipoSessao %s, Nickname %X, Addr %llX, pdncv %u, tdncv %u\n",
  						pSessionType,
 						tabela_sessoes[aux]->lista[aux2].nickname,
 						tabela_sessoes[aux]->lista[aux2].endereco,
 						tabela_sessoes[aux]->lista[aux2].pdncv,
 						tabela_sessoes[aux]->lista[aux2].tdncv);
 
-					fprintf(arq,"%s;%u;%d;%s;%X;%010I64X;%u;%u;%d\n", 
+					fprintf(arq,"%s;%u;%d;%s;%X;%llX;%u;%u;%d\n", 
 														timestamp,
 														nickname[aux],
 														tabela_sessoes[aux]->numero_sessoes_ativas,
@@ -1353,9 +1359,9 @@ loop_question6(struct hip_sess *sess){
 char c = 'c';
 while (c != 'q')
 {
-	if (kbhit()){
-		c = _getch();
-	}
+//	if (kbhit()){
+		c = getchar();
+//	}
 k++;
 printf("\nEnviando 780 \n");
 loop_question(sess);//cmd 780
@@ -1379,9 +1385,9 @@ loop_question8(struct hip_sess *sess){
 char c = 'c';
 while (c != 'q')
 {
-	if (kbhit()){
-		c = _getch();
-	}
+//	if (kbhit()){
+		c = getchar();
+//	}
 printf("\nEnviando 780 \n");
 loop_question(sess);//cmd 780
 }
@@ -1392,9 +1398,9 @@ loop_question10(struct hip_sess *sess){
 char c = 'c';
 while (c != 'q')
 {
-	if (kbhit()){
-		c = _getch();
-	}
+//	if (kbhit()){
+		c = getchar();
+//	}
 printf("\nEnviando 784 \n");
 loop_question5(sess);//cmd 784
 }
