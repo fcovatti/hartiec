@@ -7,7 +7,7 @@ TARGET_DIR := ../bin
 #Include dirs
 INCLUDE := ../build/include
 HARTIP := ../ip
-#COMMON	:=   ../include
+COMMON	:=   ../include
 
 ########################################################################
 #flags
