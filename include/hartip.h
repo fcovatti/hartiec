@@ -25,6 +25,8 @@ typedef struct WSABUF {
 
 #define HIP_SESS_TIMEOUT        (5 * 60)    // in sec
 #define HIP_RECV_TIMEOUT        60          // in sec - valor original era 10 
+//#define HIP_RECV_TIMEOUT        10          // in sec - valor original era 10 
+
 
 #define HIP_OK				    0
 #define HIP_FAILED			    -1

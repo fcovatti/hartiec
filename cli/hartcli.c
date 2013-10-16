@@ -7,6 +7,7 @@
 #include "hartip.h"
 #include "hartcli.h"
 #include "string.h"
+#include <signal.h>
 static void print_addr(hip_addr_t addr);
 static void print_result(int rv);
 //static int exists(const char *fname);
@@ -29,14 +30,18 @@ static TCHAR *gwname;
 static hip_u16 gwport = 20004; //emerson
 //static hip_u16 gwport = 10100; //nivis
 
+static BOOL quit = FALSE;
+static void sigint_handler (int signalID) {
+	quit = TRUE;
+}
+
 int main(int argc, char* argv[])
 {
 	int rv, ent=0;
 	struct hip_sess *sess;
     TCHAR c;
     //BOOL sat;
-	BOOL quit;
-	quit = FALSE;
+	signal(SIGINT, sigint_handler);
 
  //   if (argc != 2) {
  //       _tprintf(_T("Usage: hartcli gwname\n"));
@@ -497,7 +502,7 @@ loop_question(struct hip_sess *sess){
 	int aux,aux2;
 
 	nodes = NULL;
-	for (aux=0;aux<10;aux++)
+	for (aux=0;aux<10 && !quit;aux++)
 	{
 		tabela_vizinho[aux]=NULL;
 	}
@@ -506,7 +511,7 @@ loop_question(struct hip_sess *sess){
     rv = hip_enum_nodes(sess, &nodes, &nnodes);	
     if (rv == HIP_OK) 
 	{
-		for (aux=0;aux<nnodes;aux++)
+		for (aux=0;aux<nnodes && !quit;aux++)
 		{
 			printf("Buscando vizinho ... Addr ");
 			print_addr(nodes[aux]);	// Escreve endereco
@@ -543,7 +548,7 @@ loop_question(struct hip_sess *sess){
 				ts = localtime(&agora);
 				strftime(timestamp,sizeof(timestamp),"%d/%m/%Y;%H:%M:%S",ts);
 
-				for (aux2 = 0; aux2 < tabela_vizinho[aux]->vizinhos_lidos; aux2++) 
+				for (aux2 = 0; aux2 < tabela_vizinho[aux]->vizinhos_lidos && !quit; aux2++) 
 				{
 						_tprintf(_T("\t Nickname %d: (RSL %d, Flags: %d, nTX: %d, nRX: %d, nTXfault %d)\n"),
 									   tabela_vizinho[aux]->lista[aux2].nickname,
@@ -1085,7 +1090,7 @@ loop_question5(struct hip_sess *sess){
     rv = hip_enum_nodes(sess, &nodes, &nnodes);	
     if (rv == HIP_OK) 
 	{
-		for (aux=0;aux<nnodes;aux++)
+		for (aux=0;aux<nnodes && !quit;aux++)
 		{
 			int c=1;
 			printf("Buscando vizinho ... Addr ");

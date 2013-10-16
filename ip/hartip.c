@@ -69,20 +69,24 @@ int hip_connect(struct hip_sess **sess_out, const TCHAR *name, hip_u16 port)
     rv = getaddrinfo(name_str, port_str, &hints, &ai);
     if (rv != 0) {
         rv = HIP_NAME_LOOKUP_ERR;
+		printf("error getting addr info\n");
         goto done;
     }
 
     sess->sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if (sess->sock == INVALID_SOCKET) {
+		printf("invalid socket\n");
         rv = HIP_FAILED;
         goto done;
     }
+//	memcpy(&sess->srvaddr, (struct sockaddr_in *)ai->ai_addr, sizeof(struct sockaddr_in));
 
     init_rsp_len = sizeof (init_rsp);
     rv = hip_exec_hip_req(sess, (struct sockaddr_in *)ai->ai_addr,
             HIP_MSGID_OPEN, init_req, sizeof (init_req),
             &sess->srvaddr, &status, init_rsp, &init_rsp_len);
     if (rv != HIP_OK) {
+		printf("erro exec_hip_req\n");
         goto done;
     }
     sess->sess_opened = TRUE;
@@ -1176,27 +1180,28 @@ int hip_read_node(struct hip_sess *sess, hip_addr_t addr,
     hip_u8 buf[64];
     size_t buflen;
     hip_u8 *p;
+	int aux;
 
-//	printf("\nFrame Enviado hip_exec_hart_cmd {");
-//	for (int aux=0; aux<sizeof (read_cmd); aux++)
-//	{
-//		printf("%d ",read_cmd[aux]);
-//	}
-//	printf("}\n");
+	/*printf("\nFrame Enviado hip_exec_hart_cmd {");
+	for ( aux=0; aux<sizeof (read_cmd); aux++)
+	{
+		printf("%d ",read_cmd[aux]);
+	}
+	printf("}\n"); */
 
     buflen = sizeof (buf);
     rv = hip_exec_hart_cmd(sess, addr, read_cmd, sizeof (read_cmd),
             &rspcode, buf, &buflen);
 
-//	printf("\nRetorno hip_exec_hart_cmd(%d)\n",rv);
-//	printf("Codigo Resposta hip_exec_hart_cmd(%d)\n",rspcode);
-//	printf("Tamanho Resposta hip_exec_hart_cmd(%d)\n",buflen);
-//	printf("Frame Resposta hip_exec_hart_cmd {");
-//	for (int aux=0; aux<buflen; aux++)
-//	{
-//		printf("%d ",buf[aux]);
-//	}
-//	printf("}\n");
+	//printf("\nRetorno hip_exec_hart_cmd(%d)\n",rv);
+	//printf("Codigo Resposta hip_exec_hart_cmd(%d)\n",rspcode);
+	//printf("Tamanho Resposta hip_exec_hart_cmd(%d)\n",(int)buflen);
+	//printf("Frame Resposta hip_exec_hart_cmd {");
+	/*for ( aux=0; aux<buflen; aux++)
+	{
+		printf("%d ",buf[aux]);
+	}
+	printf("}\n"); */
 
     if (rv != HIP_OK) {
         goto done;
@@ -1457,24 +1462,27 @@ int hip_exec_hip_req(struct hip_sess *sess,
 //	printf("Retorno hip_send_pkt(%d)\n",rv);
 
 	if (rv != HIP_OK) {
+		printf("error sending packet\n");
         goto done;
     }
-	
+
+	//printf("sent udp packet...waiting answer\n");
 	rv = hip_recv_pkt(sess, fromaddr, status, rsp, rsplen);
     if (rv != HIP_OK) {
+		printf("error receiving packet\n");
         goto done;
     }
 
-//	printf("\nRetorno hip_recv_pkt(%d)\n",rv);
-//	printf("Status hip_recv_pkt(%d)\n",status);
-//	printf("Tamanho Resposta hip_recv_pkt(%d)\n",(*rsplen));
-//	printf("Frame Resposta hip_recv_pkt {");
-//	for (aux=0; aux<(*rsplen); aux++)
-//	{
-//		printf("%d ",rsp[aux]);
-//	}
-//	printf("}\n");
-
+/*	printf("\nRetorno hip_recv_pkt(%d)\n",rv);
+	printf("Status hip_recv_pkt(%d)\n",*status);
+	printf("Tamanho Resposta hip_recv_pkt(%d)\n",(int)(*rsplen));
+	printf("Frame Resposta hip_recv_pkt {");
+	for (aux=0; aux<(*rsplen); aux++)
+	{
+		printf("%d ",rsp[aux]);
+	}
+	printf("}\n");
+*/
     rv = HIP_OK;
 
 done:
@@ -1494,6 +1502,7 @@ hip_send_pkt(struct hip_sess *sess,
     int nbuf;
 	hip_u8 *p;
 	size_t total_len;
+	char * buffer_to_send;
 
 	p = hdr;
 	*(p++) = HIP_PROTO_VERSION;
@@ -1514,8 +1523,11 @@ hip_send_pkt(struct hip_sess *sess,
 	    wsabuf[1].len = reqlen;
         ++nbuf;
     }
-
-	
+	buffer_to_send = malloc(total_len);
+	memcpy(buffer_to_send, wsabuf[0].buf, sizeof(hdr));
+	if(reqlen >0){
+		memcpy(&buffer_to_send[sizeof(hdr)], wsabuf[1].buf, reqlen);
+	}
 
 //	printf("Frame Requisicao WSASendTo (%d){",total_len);
 //	for (int aux=0; aux<wsabuf[0].len; aux++)
@@ -1532,9 +1544,11 @@ hip_send_pkt(struct hip_sess *sess,
 //	printf("}\n");
 
 	//rv = WSASendTo(sess->sock, wsabuf, nbuf, &nwritten, 0, (struct sockaddr *)toaddr, sizeof (*toaddr), NULL, NULL);
-	rv = sendto(sess->sock, wsabuf, nbuf, 0, (struct sockaddr *)toaddr, sizeof (*toaddr));
+	//rv = sendto(sess->sock, wsabuf, sizeof(WSABUF)*nbuf, 0, (struct sockaddr *)toaddr, sizeof (*toaddr));
+	rv = sendto(sess->sock, buffer_to_send, total_len, 0, (struct sockaddr *)toaddr, sizeof (*toaddr));
 
-	if (rv != 0) {
+	if (rv != total_len) {
+		printf("error sendto %d %ld\n", rv, total_len);
         rv = HIP_FAILED;
 		goto done;
 	}
@@ -1567,9 +1581,9 @@ hip_recv_pkt(struct hip_sess *sess,
     FD_SET(sess->sock, &rfd);
     memset(&tv, 0, sizeof (tv));
     tv.tv_sec = HIP_RECV_TIMEOUT;
-    rv = select(1, &rfd, NULL, NULL, &tv);
+    rv = select((sess->sock)+1, &rfd, NULL, NULL, &tv);
 
-//	printf("\nRetorno select(%d)\n",rv);
+	//printf("\nRetorno select(%d)\n",rv);
 
     if (rv == SOCKET_ERROR) {
         rv = HIP_FAILED;

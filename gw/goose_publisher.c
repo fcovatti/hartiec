@@ -12,7 +12,9 @@
 #include "hartip.h"
 
 
-#define NODE_ADDR       0xe0ff000101
+//#define NODE_ADDR       0xe0ff000101
+//#define NODE_ADDR  0xf982001004
+#define NODE_ADDR  0xf982004022
 
 static int running = 1;
 char *gwname = "192.168.1.102";
@@ -20,10 +22,11 @@ static hip_u16 gwport = 20004; //emerson
 
 static pthread_t Thread_Goose_Publisher;
 static struct hip_node_data AcquiredData;
-static void sigint_handler(int signalId)
+/*static void sigint_handler(int signalId)
 {
 	running = 0;
-}
+}*/
+
 static void print_result(int rv)
 {
     if (rv == HIP_OK) {
@@ -33,6 +36,7 @@ static void print_result(int rv)
     }
 }
 //Publicador de mensagens GOOSE
+
 static void * Goose_Publisher(void * unused)
 {
 	LinkedList dataSetValues = LinkedList_create();
@@ -72,10 +76,9 @@ static void * Goose_Publisher(void * unused)
 	return NULL;
 }	
 
-
 int main(int argc, char** argv)
 {
-	signal(SIGINT, sigint_handler);
+	//signal(SIGINT, sigint_handler);
 
 	int rv, ent=0;
 	struct hip_sess *sess;
@@ -97,6 +100,7 @@ int main(int argc, char** argv)
 	pthread_create(&Thread_Goose_Publisher, NULL, Goose_Publisher, NULL);
 	while(running) {
 		int rv;
+	
 		struct hip_node_data data;
 
 		printf("Reading node...   \n");
@@ -104,7 +108,11 @@ int main(int argc, char** argv)
 		rv = hip_read_node(sess, NODE_ADDR, &data);
 		print_result(rv);
 		if (rv != HIP_OK) {
-			return -1;
+			if (rv == HIP_TIMED_OUT){ 
+				printf("timeout waiting command\n");
+				continue;
+			}else
+				return -1;
 		}
 
 		printf("status: %#x\n", data.status);
@@ -115,7 +123,7 @@ int main(int argc, char** argv)
 		AcquiredData.alarms = data.alarms;
 		AcquiredData.position = data.position;
 		AcquiredData.torque = data.torque;
-		sleep(1);//each second asks again
+		sleep(20);//each 10 seconds asks again
 
 	}
 	return 0;
